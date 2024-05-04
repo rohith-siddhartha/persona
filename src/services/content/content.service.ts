@@ -40,7 +40,14 @@ export class ContentService {
       this.emailQueue.add(
         'sendEmail',
         { mail: subscriber.email, contentId: savedContent.id },
-        { delay: new Date(time).getTime() - Date.now() },
+        {
+          delay: new Date(time).getTime() - Date.now(),
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
+        },
       );
     }
   }
