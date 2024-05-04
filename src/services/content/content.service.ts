@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bull';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bull';
 import { Content } from 'src/entities/content.entity';
@@ -27,7 +27,7 @@ export class ContentService {
     content.text = text;
     content.topic = topic;
 
-    await this.contentRepository.save(content);
+    const savedContent: Content = await this.contentRepository.save(content);
 
     const subscribers = await this.subscriberRepository
       .createQueryBuilder('subscriber')
@@ -39,9 +39,23 @@ export class ContentService {
     for (const subscriber of subscribers) {
       this.emailQueue.add(
         'sendEmail',
-        { mail: subscriber.email, text },
+        { mail: subscriber.email, contentId: savedContent.id },
         { delay: new Date(time).getTime() - Date.now() },
       );
     }
+  }
+
+  async getContentTextById(id: number): Promise<string | undefined> {
+    const query = this.contentRepository
+      .createQueryBuilder('content')
+      .select('content.text')
+      .where('content.id = :id', { id })
+      .getOne();
+
+    const result = await query;
+    if (!result) {
+      throw new NotFoundException(`Content with ID ${id} not found`);
+    }
+    return result.text;
   }
 }
