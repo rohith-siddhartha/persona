@@ -22,7 +22,7 @@ export class SubscriberController {
   async subscribeUserForTopic(
     @Param('id') id: number,
     @Param('topicId') topicId: number,
-  ): Promise<void> {
+  ): Promise<string> {
     return this.subscriberService.subscribeUserForTopic(id, topicId);
   }
 }

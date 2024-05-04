@@ -7,7 +7,7 @@ export class ContentController {
   constructor(private readonly contentService: ContentService) {}
 
   @Post()
-  async createContent(@Body() body: Partial<Content>): Promise<void> {
-    await this.contentService.createContent(body);
+  async createContent(@Body() body: Partial<Content>): Promise<Content> {
+    return this.contentService.createContent(body);
   }
 }

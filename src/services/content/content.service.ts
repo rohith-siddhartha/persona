@@ -19,7 +19,7 @@ export class ContentService {
     @InjectQueue('emails') private readonly emailQueue: Queue,
   ) {}
 
-  async createContent(body: Partial<Content>): Promise<void> {
+  async createContent(body: Partial<Content>): Promise<Content> {
     const { time, text, topic } = body;
 
     const content = new Content();
@@ -28,7 +28,11 @@ export class ContentService {
     content.topic = topic;
 
     const savedContent: Content = await this.contentRepository.save(content);
+    this.addMessagesToQueue(topic, savedContent.id, time);
+    return savedContent;
+  }
 
+  async addMessagesToQueue(topic: Topic, id: number, time: Date) {
     const subscribers = await this.subscriberRepository
       .createQueryBuilder('subscriber')
       .innerJoin('subscriber.topics', 'topic', 'topic.id = :topicId', {
@@ -39,7 +43,7 @@ export class ContentService {
     for (const subscriber of subscribers) {
       this.emailQueue.add(
         'sendEmail',
-        { mail: subscriber.email, contentId: savedContent.id },
+        { mail: subscriber.email, contentId: id },
         {
           delay: new Date(time).getTime() - Date.now(),
           attempts: 3,
@@ -52,7 +56,7 @@ export class ContentService {
     }
   }
 
-  async getContentTextById(id: number): Promise<string | undefined> {
+  async getContentTextById(id: number): Promise<string> {
     const query = this.contentRepository
       .createQueryBuilder('content')
       .select('content.text')
